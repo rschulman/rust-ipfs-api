@@ -43,6 +43,6 @@ mod tests {
     #[test]
     fn cat_returns_correct_value() {
         let server = IPFS::new("localhost".to_string(), 5001);
-        assert_eq!("This is a test", server.cat("/ipfs/QmR6XorNYAywK4q1dRiRN1gmvfLcx3ccBv68iGtAqon9tt\n".to_string()).trim_right_matches('\n'));
+        assert_eq!("This is a test", server.cat("/ipfs/QmR6XorNYAywK4q1dRiRN1gmvfLcx3ccBv68iGtAqon9tt".to_string()).trim_right_matches('\n'));
     }
 }
