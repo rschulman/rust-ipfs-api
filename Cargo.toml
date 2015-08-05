@@ -6,3 +6,6 @@ authors = ["Ross Schulman <ross@rbs.io>"]
 [dependencies]
 hyper = "*"
 protobuf = "1.0.1"
+
+[dependencies.rust-base58]
+git = "https://github.com/rschulman/rust-base58.git"

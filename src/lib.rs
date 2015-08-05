@@ -1,5 +1,6 @@
 extern crate hyper;
 extern crate protobuf;
+extern crate rust_base58;
 
 mod merkledag;
 
@@ -8,6 +9,7 @@ use std::io::Read;
 use hyper::Client;
 use hyper::header::Connection;
 use protobuf::core::Message;
+use rust_base58::ToBase58;
 
 #[derive(Debug)]
 pub enum IPFSError {
@@ -29,7 +31,7 @@ impl IPFS {
     fn call(&self, cmd: &str, args: Vec<String>) -> Result<merkledag::PBNode, IPFSError> {
         let connection = Client::new();
         //let res = connection.get(&"http://" + self.host + ":" + self.port + "cat?arg=" + path);
-        let mut res = connection.get(&format!("http://{}:{}{}{}?arg={}", 
+        let mut res = connection.get(&format!("http://{}:{}{}{}?arg={}&encoding=protobuf", 
                                          self.host, self.port, self.apistring, cmd, args[0]))
                                          .header(Connection::close())
                                          .send().unwrap();
@@ -40,10 +42,11 @@ impl IPFS {
                          // something with errors.
     }
     
-    /*pub fn cat (&self, path: String) -> Result<String, IPFSError> {
-        return self.call("/object/get", vec![path]);
+    pub fn cat (&self, path: String) -> Result<String, IPFSError> {
+        let result = self.call("/object/get", vec![path]);
+        return Err(IPFSError::NoSuchHash);
     }
-*/
+
     pub fn ls (&self, path: String) -> Result<Vec<(String, u64, String)>, IPFSError> {
         let result = self.call("/object/get", vec![path]);
         match result {
@@ -51,7 +54,7 @@ impl IPFS {
                 let links = node.get_Links();
                 let mut link_vec = Vec::new();
                 for link in links {
-                    link_vec.push((String::from_utf8(link.get_Hash().to_vec()).unwrap(), link.get_Tsize(), link.get_Name().to_string()));
+                    link_vec.push((link.get_Hash().to_base58(), link.get_Tsize(), link.get_Name().to_string()));
                 }
                 return Ok(link_vec);
             }
@@ -67,11 +70,11 @@ mod tests {
     use super::*;
 
     #[test]
-/*    fn cat_returns_correct_value() {
+    fn cat_returns_correct_value() {
         let server = IPFS::new("localhost".to_string(), 5001);
         assert_eq!("This is a test", server.cat("/ipfs/QmR6XorNYAywK4q1dRiRN1gmvfLcx3ccBv68iGtAqon9tt".to_string()).unwrap().trim_right_matches('\n'));
     }
-*/
+
     #[test]
     fn ls_returns_vec_of_correct_values() {
         let server = IPFS::new("localhost".to_string(), 5001);
@@ -86,6 +89,10 @@ mod tests {
             Ok(data) => data,
             Err(error) => panic!(error)
         };
+        
+        if checked.len() == 0 {
+            panic!("No results returned.");
+        }
 
         for (asked, gotten) in checked.iter().zip(&expect) {
             assert_eq!(asked, gotten);
