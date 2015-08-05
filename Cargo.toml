@@ -5,6 +5,4 @@ authors = ["Ross Schulman <ross@rbs.io>"]
 
 [dependencies]
 hyper = "*"
-
-[dependencies.protobuf]
-git = "https://github.com/stepancheg/rust-protobuf.git"
+protobuf = "1.0.1"
