@@ -5,3 +5,4 @@ authors = ["Ross Schulman <ross@rbs.io>"]
 
 [dependencies]
 hyper = "*"
+serde = "0.4.3"
