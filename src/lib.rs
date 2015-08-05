@@ -1,11 +1,12 @@
 extern crate hyper;
-extern crate serde;
+extern crate protobuf;
+
+mod merkledag;
 
 use std::io::Read;
 
 use hyper::Client;
 use hyper::header::Connection;
-use serde::json::{self, Value};
 
 #[derive(Debug)]
 pub enum IPFSError {
