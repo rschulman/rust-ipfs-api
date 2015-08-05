@@ -7,6 +7,7 @@ use std::io::Read;
 
 use hyper::Client;
 use hyper::header::Connection;
+use protobuf::core::Message;
 
 #[derive(Debug)]
 pub enum IPFSError {
@@ -25,41 +26,36 @@ impl IPFS {
         IPFS { host: host, port: port, apistring: "/api/v0/".to_string() }
     }
 
-    fn call(&self, cmd: &str, args: Vec<String>) -> Result<String, IPFSError> {
+    fn call(&self, cmd: &str, args: Vec<String>) -> Result<merkledag::PBNode, IPFSError> {
         let connection = Client::new();
         //let res = connection.get(&"http://" + self.host + ":" + self.port + "cat?arg=" + path);
         let mut res = connection.get(&format!("http://{}:{}{}{}?arg={}", 
                                          self.host, self.port, self.apistring, cmd, args[0]))
                                          .header(Connection::close())
                                          .send().unwrap();
-        let mut body = String::new();
-        res.read_to_string(&mut body).unwrap();
+        let mut object = merkledag::PBNode::new();
+        object.merge_from(&mut protobuf::CodedInputStream::new(&mut res));
 
-        return Ok(body); // This is a hack, we should not be unwrapping above and instead doing
+        return Ok(object); // This is a hack, we should not be unwrapping above and instead doing
                          // something with errors.
     }
     
-    pub fn cat (&self, path: String) -> Result<String, IPFSError> {
-        return self.call("cat", vec![path]);
+    /*pub fn cat (&self, path: String) -> Result<String, IPFSError> {
+        return self.call("/object/get", vec![path]);
     }
-
+*/
     pub fn ls (&self, path: String) -> Result<Vec<(String, u64, String)>, IPFSError> {
-        let result = self.call("ls", vec![path]);
+        let result = self.call("/object/get", vec![path]);
         match result {
-            Ok(raw_data) => {
-                let data:Value = json::from_str(&raw_data).unwrap();
-                let obj = data.as_object().unwrap();
-                let obj_list = obj.get("Objects").unwrap().as_array().unwrap()[0].as_object().unwrap();
-                 
-                let ls_list = obj_list.get("Links").unwrap().as_array().unwrap();
-                let mut links = Vec::new();
-                for link in ls_list {
-                    let link_obj = link.as_object().unwrap();
-                    links.push((link_obj.get("Hash").unwrap().as_string().unwrap().to_string(), link_obj.get("Size").unwrap().as_u64().unwrap(), link_obj.get("Name").unwrap().as_string().unwrap().to_string()));
+            Ok(node) => {
+                let links = node.get_Links();
+                let mut link_vec = Vec::new();
+                for link in links {
+                    link_vec.push((String::from_utf8(link.get_Hash().to_vec()).unwrap(), link.get_Tsize(), link.get_Name().to_string()));
                 }
-                return Ok(links);
+                return Ok(link_vec);
             }
-            Err(error) => Err(error)
+           Err(error) => Err(error)
         }
     }
 }
@@ -71,11 +67,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn cat_returns_correct_value() {
+/*    fn cat_returns_correct_value() {
         let server = IPFS::new("localhost".to_string(), 5001);
         assert_eq!("This is a test", server.cat("/ipfs/QmR6XorNYAywK4q1dRiRN1gmvfLcx3ccBv68iGtAqon9tt".to_string()).unwrap().trim_right_matches('\n'));
     }
-
+*/
     #[test]
     fn ls_returns_vec_of_correct_values() {
         let server = IPFS::new("localhost".to_string(), 5001);
