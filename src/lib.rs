@@ -3,13 +3,13 @@ extern crate protobuf;
 extern crate rust_base58;
 
 mod merkledag;
-
-use std::io::Read;
+mod unixfs;
 
 use hyper::Client;
 use hyper::header::Connection;
 use protobuf::core::Message;
 use rust_base58::ToBase58;
+use std::str::from_utf8;
 
 #[derive(Debug)]
 pub enum IPFSError {
@@ -44,7 +44,15 @@ impl IPFS {
     
     pub fn cat (&self, path: String) -> Result<String, IPFSError> {
         let result = self.call("/object/get", vec![path]);
-        return Err(IPFSError::NoSuchHash);
+        println!("{:?}", result);
+        match result {
+            Ok(node) => {
+                let mut content = unixfs::Data::new();
+                content.merge_from_bytes(&mut node.get_Data());
+                return Ok(from_utf8(content.get_Data()).unwrap().to_string());
+            }
+            Err(error) => Err(error)
+        }
     }
 
     pub fn ls (&self, path: String) -> Result<Vec<(String, u64, String)>, IPFSError> {
